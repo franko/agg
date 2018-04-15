@@ -8,3 +8,4 @@ endif
 agg_includes = include_directories('include')
 
 subdir('src')
+subdir('examples')

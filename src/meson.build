@@ -38,3 +38,5 @@ agg_src = [
 ]
 
 libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes)
+
+subdir('platform')
