@@ -201,15 +201,8 @@ namespace agg
     //------------------------------------------------------------------------
     void platform_specific::caption(const char* capt)
     {
-        XTextProperty tp;
-        tp.value = (unsigned char *)capt;
-        tp.encoding = XA_WM_NAME;
-        tp.format = 8;
-        tp.nitems = strlen(capt);
-        XSetWMName(m_display, m_window, &tp);
         XStoreName(m_display, m_window, capt);
         XSetIconName(m_display, m_window, capt);
-        XSetWMIconName(m_display, m_window, &tp);
     }
 
     
