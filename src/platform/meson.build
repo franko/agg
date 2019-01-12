@@ -7,5 +7,6 @@ endif
 libplatform = static_library('platform', platform_support_src,
     dependencies: agg_deps,
     include_directories: agg_includes,
-    link_with: libagg
+    link_with: libagg,
+    install: true
 )

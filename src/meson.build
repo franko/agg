@@ -37,6 +37,6 @@ agg_src = [
 '../gpc/gpc.c'
 ]
 
-libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes)
+libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes, install: true)
 
 subdir('platform')
