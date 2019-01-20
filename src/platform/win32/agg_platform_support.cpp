@@ -1239,7 +1239,7 @@ namespace agg
         token next_token();
 
     private:
-        int  check_chr(const char *str, char chr);
+        int check_chr(const char *str, char chr);
 
     private:
         const char* m_src_string;
@@ -1265,7 +1265,7 @@ namespace agg
     //-----------------------------------------------------------------------
     inline int tokenizer::check_chr(const char *str, char chr)
     {
-        return int(strchr(str, chr));
+        return (strchr(str, chr) != 0);
     }
 
 
