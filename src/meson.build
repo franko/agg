@@ -1,3 +1,4 @@
+pkg = import('pkgconfig')
 
 agg_src = [
 'agg_arc.cpp',
@@ -38,5 +39,11 @@ agg_src = [
 ]
 
 libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes, install: true)
+
+pkg.generate(libagg,
+    filebase : 'libagg',
+    name : 'libagg',
+    description : 'Anti-grain library',
+)
 
 subdir('platform')
