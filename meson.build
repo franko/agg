@@ -5,6 +5,10 @@ if host_machine.system() == 'linux'
     agg_deps += dependency('x11')
 endif
 
+cc = meson.get_compiler('cpp')
+libm = cc.find_library('m', required : false)
+agg_deps += libm
+
 agg_includes = include_directories('include')
 
 install_subdir('include', install_dir : 'include/agg2', strip_directory : true)
