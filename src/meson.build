@@ -40,9 +40,12 @@ agg_src = [
 
 libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes, install: true)
 
+# The 'subdirs' below is needed because the headers are installed inside the 'agg2'
+# subdirectory.
 pkg.generate(libagg,
     filebase : 'libagg',
     name : 'libagg',
+    subdirs: 'agg2',
     description : 'Anti-grain library',
 )
 
