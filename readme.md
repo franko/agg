@@ -30,7 +30,7 @@ Here how to use the Antigrain library with the Little Library Helper.
 lhelper create agg
 
  # Start a new shell in the 'agg' build environment.
-lhelper start agg
+lhelper activate agg
 
 # Install the agg library in the current build environment.
 lhelper install libagg
@@ -41,10 +41,9 @@ lhelper install libagg
 exit # end the shell in the 'agg' build environment
 ```
 
-## What is the Antigrain library? (extract from the original Antigrain library's README)
+# What is the Antigrain library? (extract from the original Antigrain library's README)
 
-The Anti-Grain Geometry Project
--------------------------------
+## The Anti-Grain Geometry Project
 
 A high quality rendering engine for C++
 [http://antigrain.com](http://antigrain.com)
