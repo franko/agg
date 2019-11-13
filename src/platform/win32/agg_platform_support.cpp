@@ -1112,6 +1112,12 @@ namespace agg
         return file_name;
     }
 
+    static bool needs_bmp_extension(const char *fn)
+    {
+        int len = strlen(fn);
+        return (len < 4 || (strcmp(fn + len - 4, ".BMP") != 0 && strcmp(fn + len - 4, ".bmp") != 0));
+    }
+
     //------------------------------------------------------------------------
     bool platform_support::load_img(unsigned idx, const char* file)
     {
@@ -1119,8 +1125,7 @@ namespace agg
         {
             char fn[1024];
             strcpy(fn, file);
-            int len = strlen(fn);
-            if(len < 4 || stricmp(fn + len - 4, ".BMP") != 0)
+            if(needs_bmp_extension(fn))
             {
                 strcat(fn, ".bmp");
             }
@@ -1138,8 +1143,7 @@ namespace agg
         {
             char fn[1024];
             strcpy(fn, file);
-            int len = strlen(fn);
-            if(len < 4 || stricmp(fn + len - 4, ".BMP") != 0)
+            if(needs_bmp_extension(fn))
             {
                 strcat(fn, ".bmp");
             }
