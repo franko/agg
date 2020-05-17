@@ -14,4 +14,6 @@ agg_includes = include_directories('include')
 install_subdir('include', install_dir : 'include/agg2', strip_directory : true)
 
 subdir('src')
+subdir('font_freetype')
 subdir('examples')
+subdir('research/truetype_lcd')
