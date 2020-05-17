@@ -901,10 +901,12 @@ namespace agg
     bool font_engine_freetype_base::prepare_glyph(unsigned glyph_code)
     {
         m_glyph_index = FT_Get_Char_Index(m_cur_face, glyph_code);
+        // For hinting FT_LOAD_DEFAULT could be used but it gives severe
+        // visual artefacts when scaling fonts x100 along X like
+        // done by AGG.
         m_last_error = FT_Load_Glyph(m_cur_face, 
                                      m_glyph_index, 
-                                     m_hinting ? FT_LOAD_DEFAULT : FT_LOAD_NO_HINTING);
-//                                     m_hinting ? FT_LOAD_FORCE_AUTOHINT : FT_LOAD_NO_HINTING);
+                                     m_hinting ? FT_LOAD_FORCE_AUTOHINT : FT_LOAD_NO_HINTING);
         if(m_last_error == 0)
         {
             switch(m_glyph_rendering)
