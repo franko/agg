@@ -45,9 +45,9 @@ static const fontname_pair os_fontnames[5] = {
     {"fonts-deva-extra/kalimati.ttf", "fonts-deva-extra/kalimati.ttf"},
     {"dejavu/DejaVuSans.ttf", "dejavu/DejaVuSans.ttf"},
     {"freefont/FreeSerif.ttf", "freefont/FreeSerifItalic.ttf"},
-    {"tlwg/Norasi.ttf", "tlwg/Norasi-Oblique.ttf"},
+    {"liberation/LiberationSerif-Regular.ttf", "liberation/LiberationSerif-Italic.ttf"},
 };
-static const char *os_face_name[5] = {"FreeSans", "Kalimati", "DejaVuSans", "FreeSerif", "Norasi"};
+static const char *os_face_name[5] = {"FreeSans", "Kalimati", "DejaVuSans", "FreeSerif", "LiberationSerif"};
 static const char *os_default_font_dir = "/usr/share/fonts/truetype";
 #endif
 
