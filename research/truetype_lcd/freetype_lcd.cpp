@@ -22,6 +22,31 @@
 enum { flip_y = true };
 
 
+static const char *os_font_directory;
+
+struct fontname_pair {
+    const char *regular;
+    const char *italic;
+};
+
+#if defined(_WIN32) || defined(WIN32) 
+static const struct fontname_pair os_fontnames[5] = {
+    {"arial.ttf", "ariali.ttf"},
+    {"tahoma.ttf", "tahomai.ttf"},
+    {"verdana.ttf", "verdanai.ttf"},
+    {"times.ttf", "timesi.ttf"},
+    {"georgia.ttf", "georgiai.ttf"},
+};
+#else
+static const struct fontname_pair os_fontnames[5] = {
+    {"freefont/FreeSans.ttf", "freefont/FreeSansOblique.ttf"},
+    {"fonts-deva-extra/kalimati.ttf", "fonts-deva-extra/kalimati.ttf"},
+    {"dejavu/DejaVuSans.ttf", "dejavu/DejaVuSans.ttf"},
+    {"freefont/FreeSerif.ttf", "freefont/FreeSerifItalic.ttf"},
+    {"tlwg/Norasi.ttf", "tlwg/Norasi-Oblique.ttf"},
+};
+#endif
+
 static char pangram[] = "A Quick Brown Fox Jumps Over The Lazy Dog 0123456789";
 
 
@@ -295,6 +320,17 @@ public:
     }
 
 
+    static char *path_join(const char *dir, const char *filename) {
+        const int path_len = strlen(dir), filename_len = strlen(filename);
+        const int len = path_len + 1 + filename_len + 1;
+        char *full_name = new char[len];
+        memcpy(full_name, dir, path_len);
+        memcpy(full_name + path_len, "/", 1);
+        memcpy(full_name + path_len + 1, filename, filename_len);
+        full_name[len - 1] = 0;
+        return full_name;
+    }
+
     virtual void on_draw()
     {
         m_gamma_lut.gamma(m_gamma.value());
@@ -325,7 +361,16 @@ public:
         double y = height() - 20;
         double k = m_height.value();
 
-
+        static fontname_pair *fontnames_full_path = 0;
+        if (fontnames_full_path == 0) {
+            fontnames_full_path = new fontname_pair[5];
+            const int path_len = strlen(os_font_directory);
+            for (int i = 0; i < 5; i++) {
+                const fontname_pair *pair = os_fontnames[i];
+                fontnames_full_path[i].regular = path_join(os_font_directory, pair.regular);
+                fontnames_full_path[i].italic  = path_join(os_font_directory, pair.italic);
+            }
+        }
 
         const char* normal = "arial.ttf";
         const char* italic = "ariali.ttf";
@@ -463,6 +508,13 @@ public:
 
 int agg_main(int argc, char* argv[])
 {
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s <font-directory>\n", argv[0]);
+        return 1;
+    }
+
+    os_font_directory = argv[1];
+
     the_application app(agg::pix_format_rgb24, flip_y);
     app.caption("AGG Example. A New Way of Text Rasterization");
 
