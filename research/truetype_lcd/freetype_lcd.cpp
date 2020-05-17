@@ -29,6 +29,23 @@ struct fontname_pair {
     const char *italic;
 };
 
+struct color_scheme {
+    agg::int8u foreground[3];
+    agg::int8u background[3];
+};
+
+const color_scheme predefined_colors[] = {
+    { {0x00, 0x00, 0x00}, {0xff, 0xff, 0xff} },
+    { {0x23, 0x1f, 0x20}, {0xe9, 0xe5, 0xcd} },
+    { {0x38, 0x9a, 0xd4}, {0xe9, 0xe5, 0xcd} },
+    { {0x23, 0x1f, 0x20}, {0x7c, 0xb1, 0xe0} },
+    { {0xff, 0xff, 0xff}, {0x7c, 0xb1, 0xe0} },
+};
+
+static agg::rgba8 rgba8_of_values(const agg::int8u value[]) {
+    return agg::rgba8(value[0], value[1], value[2]);
+}
+
 #if defined(_WIN32) || defined(WIN32)
 static const fontname_pair os_fontnames[5] = {
     {"arial.ttf", "ariali.ttf"},
@@ -50,9 +67,6 @@ static const fontname_pair os_fontnames[5] = {
 static const char *os_face_name[5] = {"FreeSans", "Kalimati", "DejaVuSans", "FreeSerif", "LiberationSerif"};
 static const char *os_default_font_dir = "/usr/share/fonts/truetype";
 #endif
-
-static char pangram[] = "A Quick Brown Fox Jumps Over The Lazy Dog 0123456789";
-
 
 static char text1[] = 
 "A single pixel on a color LCD is made of three colored elements \n"
@@ -131,6 +145,7 @@ class the_application : public agg::platform_support
     typedef agg::font_cache_manager<font_engine_type> font_manager_type;
 
     agg::rbox_ctrl<agg::rgba8>   m_typeface;
+    agg::rbox_ctrl<agg::rgba8>   m_color_scheme;
     agg::slider_ctrl<agg::rgba8> m_height;
     agg::slider_ctrl<agg::rgba8> m_faux_italic;
     agg::slider_ctrl<agg::rgba8> m_faux_weight;
@@ -156,20 +171,21 @@ class the_application : public agg::platform_support
 public:
     the_application(agg::pix_format_e format, bool flip_y) :
         agg::platform_support(format, flip_y),
-        m_typeface     (5.0, 5.0, 5.0+150.0,   110.0,  !flip_y),
+        m_typeface     (5.0, 5.0, 5.0+130.0,   110.0,  !flip_y),
+        m_color_scheme (140.0, 5.0, 5.0+190.0,   110.0,  !flip_y),
 
-        m_height       (160, 10.0, 640-5.0,    17.0,   !flip_y),
-        m_faux_italic  (160, 25.0, 640-5.0,    32.0,   !flip_y),
-        m_faux_weight  (160, 40.0, 640-5.0,    47.0,   !flip_y),
-        m_interval     (260, 55.0, 640-5.0,    62.0,   !flip_y),
-        m_width        (260, 70.0, 640-5.0,    77.0,   !flip_y),
-        m_gamma        (260, 85.0, 640-5.0,    92.0,   !flip_y),
-        m_primary      (260,100.0, 640-5.0,   107.0,   !flip_y),
+        m_height       (200, 10.0, 640-5.0,    17.0,   !flip_y),
+        m_faux_italic  (200, 25.0, 640-5.0,    32.0,   !flip_y),
+        m_faux_weight  (200, 40.0, 640-5.0,    47.0,   !flip_y),
+        m_interval     (300, 55.0, 640-5.0,    62.0,   !flip_y),
+        m_width        (300, 70.0, 640-5.0,    77.0,   !flip_y),
+        m_gamma        (300, 85.0, 640-5.0,    92.0,   !flip_y),
+        m_primary      (300,100.0, 640-5.0,   107.0,   !flip_y),
 
-        m_grayscale    (160, 50.0, "Grayscale", !flip_y),
-        m_hinting      (160, 65.0, "Hinting",   !flip_y),
-        m_kerning      (160, 80.0, "Kerning",   !flip_y),
-        m_invert       (160, 95.0, "Invert",    !flip_y),
+        m_grayscale    (200, 50.0, "Grayscale", !flip_y),
+        m_hinting      (200, 65.0, "Hinting",   !flip_y),
+        m_kerning      (200, 80.0, "Kerning",   !flip_y),
+        m_invert       (200, 95.0, "Invert",    !flip_y),
         m_feng(),
         m_fman(m_feng),
         m_old_height(0.0),
@@ -183,6 +199,14 @@ public:
         m_typeface.cur_item(4);
         add_ctrl(m_typeface);
         m_typeface.no_transform();
+
+        static const char *scheme_name[] = {"1", "2", "3", "4", "5"};
+        for (int i = 0; i < 5; i++) {
+            m_color_scheme.add_item(scheme_name[i]);
+        }
+        m_color_scheme.cur_item(1);
+        add_ctrl(m_color_scheme);
+        m_color_scheme.no_transform();
 
         m_height.label("Font Scale=%.2f");
         m_height.range(0.5, 2);
@@ -245,15 +269,15 @@ public:
 
     template<class Rasterizer, class Scanline, class RenSolid>
     double draw_text(Rasterizer& ras, Scanline& sl, 
-                     RenSolid& ren_solid, 
-                     const char* font, const char* text, 
+                     RenSolid& ren_solid, const color_scheme& scheme,
+                     const char* font, const char* text,
                      double x, double y, double height,
                      unsigned subpixel_scale)
     {
-        agg::rgba8 color(0, 0, 0);
+        agg::rgba8 color = rgba8_of_values(scheme.foreground);
         if(m_invert.status())
         {
-            color = agg::rgba8(255, 255, 255);
+            color = rgba8_of_values(scheme.background);
         }
 
         agg::glyph_rendering gren = agg::glyph_ren_outline;
@@ -341,11 +365,14 @@ public:
         base_ren_type ren_base(pf);
         renderer_solid ren_solid(ren_base);
 
-        ren_base.clear(agg::rgba8(255, 255, 255));
+        int color_index = m_color_scheme.cur_item();
+        const color_scheme& color_pair = predefined_colors[color_index];
+
+        ren_base.clear(rgba8_of_values(color_pair.background));
 
         if(m_invert.status())
         {
-            ren_base.copy_bar(0, 120, pf.width(), pf.height(), agg::rgba8(0, 0, 0));
+            ren_base.copy_bar(0, 120, pf.width(), pf.height(), rgba8_of_values(color_pair.foreground));
         }
 
 
@@ -380,24 +407,24 @@ public:
         //--------------------------------------
         if(m_grayscale.status())
         {
-            y  = draw_text(ras, sl, ren_solid, normal, text1, 10, y, k*12, 1); 
+            y  = draw_text(ras, sl, ren_solid, color_pair, normal, text1, 10, y, k*12, 1); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid, italic, text2, 10, y, k*12, 1); 
+            y  = draw_text(ras, sl, ren_solid, color_pair, italic, text2, 10, y, k*12, 1); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid, normal, text3, 10, y, k*12, 1); 
+            y  = draw_text(ras, sl, ren_solid, color_pair, normal, text3, 10, y, k*12, 1); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid, italic, text4, 10, y, k*12, 1); 
+            y  = draw_text(ras, sl, ren_solid, color_pair, italic, text4, 10, y, k*12, 1); 
             y -= 7 + k*12;
         }
         else
         {
-            y  = draw_text(ras, sl, ren_solid_lcd, normal, text1, 10, y, k*12, 3); 
+            y  = draw_text(ras, sl, ren_solid_lcd, color_pair, normal, text1, 10, y, k*12, 3); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid_lcd, italic, text2, 10, y, k*12, 3); 
+            y  = draw_text(ras, sl, ren_solid_lcd, color_pair, italic, text2, 10, y, k*12, 3); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid_lcd, normal, text3, 10, y, k*12, 3); 
+            y  = draw_text(ras, sl, ren_solid_lcd, color_pair, normal, text3, 10, y, k*12, 3); 
             y -= 7 + k*12;
-            y  = draw_text(ras, sl, ren_solid_lcd, italic, text4, 10, y, k*12, 3); 
+            y  = draw_text(ras, sl, ren_solid_lcd, color_pair, italic, text4, 10, y, k*12, 3); 
             y -= 7 + k*12;
         }
 
@@ -459,6 +486,7 @@ public:
         pf.apply_gamma_inv(m_gamma_lut);
         ras.clip_box(0, 0, pf.width(), pf.height());
 
+        agg::render_ctrl(ras, sl, ren_base, m_color_scheme);
         agg::render_ctrl(ras, sl, ren_base, m_typeface);
         agg::render_ctrl(ras, sl, ren_base, m_height);
         agg::render_ctrl(ras, sl, ren_base, m_faux_italic);
