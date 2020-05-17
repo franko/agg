@@ -22,6 +22,35 @@
 enum { flip_y = true };
 
 
+static const char *os_font_directory;
+
+struct fontname_pair {
+    const char *regular;
+    const char *italic;
+};
+
+#if defined(_WIN32) || defined(WIN32)
+static const fontname_pair os_fontnames[5] = {
+    {"arial.ttf", "ariali.ttf"},
+    {"tahoma.ttf", "tahomai.ttf"},
+    {"verdana.ttf", "verdanai.ttf"},
+    {"times.ttf", "timesi.ttf"},
+    {"georgia.ttf", "georgiai.ttf"},
+};
+static const char *os_face_name[5] = {"Arial", "Tahoma", "Verdana", "Times", "Georgia"};
+static const char *os_default_font_dir = "C:/Windows/fonts";
+#else
+static const fontname_pair os_fontnames[5] = {
+    {"freefont/FreeSans.ttf", "freefont/FreeSansOblique.ttf"},
+    {"fonts-deva-extra/kalimati.ttf", "fonts-deva-extra/kalimati.ttf"},
+    {"dejavu/DejaVuSans.ttf", "dejavu/DejaVuSans.ttf"},
+    {"freefont/FreeSerif.ttf", "freefont/FreeSerifItalic.ttf"},
+    {"tlwg/Norasi.ttf", "tlwg/Norasi-Oblique.ttf"},
+};
+static const char *os_face_name[5] = {"FreeSans", "Kalimati", "DejaVuSans", "FreeSerif", "Norasi"};
+static const char *os_default_font_dir = "/usr/share/fonts/truetype";
+#endif
+
 static char pangram[] = "A Quick Brown Fox Jumps Over The Lazy Dog 0123456789";
 
 
@@ -148,11 +177,9 @@ public:
         m_trans(m_curves, m_mtx),
         m_weight(m_trans)
     {
-        m_typeface.add_item("Arial");
-        m_typeface.add_item("Tahoma");
-        m_typeface.add_item("Verdana");
-        m_typeface.add_item("Times");
-        m_typeface.add_item("Georgia");
+        for (int i = 0; i < 5; i++) {
+            m_typeface.add_item(os_face_name[i]);
+        }
         m_typeface.cur_item(4);
         add_ctrl(m_typeface);
         m_typeface.no_transform();
@@ -295,6 +322,17 @@ public:
     }
 
 
+    static char *path_join(const char *dir, const char *filename) {
+        const int path_len = strlen(dir), filename_len = strlen(filename);
+        const int len = path_len + 1 + filename_len + 1;
+        char *full_name = new char[len];
+        memcpy(full_name, dir, path_len);
+        memcpy(full_name + path_len, "/", 1);
+        memcpy(full_name + path_len + 1, filename, filename_len);
+        full_name[len - 1] = 0;
+        return full_name;
+    }
+
     virtual void on_draw()
     {
         m_gamma_lut.gamma(m_gamma.value());
@@ -325,34 +363,19 @@ public:
         double y = height() - 20;
         double k = m_height.value();
 
-
-
-        const char* normal = "arial.ttf";
-        const char* italic = "ariali.ttf";
-
-        switch(m_typeface.cur_item())
-        {
-        case 1:
-            normal = "tahoma.ttf";
-            italic = "tahoma.ttf";
-            break;
-
-        case 2:
-            normal = "verdana.ttf";
-            italic = "verdanai.ttf";
-            break;
-
-        case 3:
-            normal = "times.ttf";
-            italic = "timesi.ttf";
-            break;
-
-        case 4:
-            normal = "georgia.ttf";
-            italic = "georgiai.ttf";
-            break;
+        static fontname_pair *fontnames_full_path = 0;
+        if (fontnames_full_path == 0) {
+            fontnames_full_path = new fontname_pair[5];
+            for (int i = 0; i < 5; i++) {
+                const fontname_pair *pair = &os_fontnames[i];
+                fontnames_full_path[i].regular = path_join(os_font_directory, pair->regular);
+                fontnames_full_path[i].italic  = path_join(os_font_directory, pair->italic);
+            }
         }
 
+        int typeface_index = m_typeface.cur_item();
+        const char* normal = fontnames_full_path[typeface_index % 5].regular;
+        const char* italic = fontnames_full_path[typeface_index % 5].italic;
 
         //--------------------------------------
         if(m_grayscale.status())
@@ -463,6 +486,21 @@ public:
 
 int agg_main(int argc, char* argv[])
 {
+    if (argc > 2) {
+        fprintf(stderr, "usage: %s [truetype-font-dir]\n", argv[0]);
+        return 1;
+    }
+
+    if (argc == 2) {
+        os_font_directory = argv[1];
+    } else {
+        os_font_directory = os_default_font_dir;
+        fprintf(stderr, "Looking for truetype fonts in %s.\n", os_font_directory);
+        fprintf(stderr,
+            "If it does not work you may call the demo providing\n" \
+            "the directory containing the truetype fonts as an argument.\n");
+    }
+
     the_application app(agg::pix_format_rgb24, flip_y);
     app.caption("AGG Example. A New Way of Text Rasterization");
 
@@ -472,5 +510,3 @@ int agg_main(int argc, char* argv[])
     }
     return 1;
 }
-
-
