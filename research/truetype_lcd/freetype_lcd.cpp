@@ -388,9 +388,10 @@ public:
         // Alternative LUT values: (0.448, 0.184, 0.092) tuned in elementary
         // plot library.
         agg::lcd_distribution_lut lut(m_primary.value(), 2./9., 1./9.);
-        agg::pixfmt_rgb24_lcd pf_lcd(rbuf_window(), lut);
-        agg::renderer_base<agg::pixfmt_rgb24_lcd> ren_base_lcd(pf_lcd);
-        agg::renderer_scanline_aa_solid<agg::renderer_base<agg::pixfmt_rgb24_lcd> > ren_solid_lcd(ren_base_lcd);
+        typedef agg::pixfmt_rgb24_lcd_gamma<agg::gamma_lut<> > pixfmt_lcd_type;
+        pixfmt_lcd_type pf_lcd(rbuf_window(), lut, m_gamma_lut);
+        agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
+        agg::renderer_scanline_aa_solid<agg::renderer_base<pixfmt_lcd_type> > ren_solid_lcd(ren_base_lcd);
 
 
         double y = height() - 20;
@@ -489,7 +490,6 @@ public:
 */
 
 
-        pf.apply_gamma_inv(m_gamma_lut);
         ras.clip_box(0, 0, pf.width(), pf.height());
 
         agg::render_ctrl(ras, sl, ren_base, m_color_scheme);
