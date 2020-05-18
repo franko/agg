@@ -245,13 +245,13 @@ public:
 
         m_gamma.label("Gamma=%.2f");
         m_gamma.range(0.5, 2.5);
-        m_gamma.value(1.5);
+        m_gamma.value(1.8);
         add_ctrl(m_gamma);
         m_gamma.no_transform();
 
         m_primary.label("Primary Weight=%.2f");
         m_primary.range(0.0, 1.0);
-        m_primary.value(1./3.); // Alternative value: 0.448
+        m_primary.value(0.448); // Standard, non-tuned value is 1./3.
         add_ctrl(m_primary);
         m_primary.no_transform();
 
@@ -385,9 +385,10 @@ public:
         agg::rasterizer_scanline_aa<> ras;
         ras.clip_box(0, 120, pf.width()*3, pf.height());
 
-        // Alternative LUT values: (0.448, 0.184, 0.092) tuned in elementary
-        // plot library.
-        agg::lcd_distribution_lut lut(m_primary.value(), 2./9., 1./9.);
+        // Conventional LUT values: (1./3., 2./9., 1./9.)
+        // The values below are fine tuned as in the Elementary Plot library.
+        // The primary weight should be 0.448 but is left adjustable.
+        agg::lcd_distribution_lut lut(m_primary.value(), 0.184, 0.092);
         typedef agg::pixfmt_rgb24_lcd_gamma<agg::gamma_lut<> > pixfmt_lcd_type;
         pixfmt_lcd_type pf_lcd(rbuf_window(), lut, m_gamma_lut);
         agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
