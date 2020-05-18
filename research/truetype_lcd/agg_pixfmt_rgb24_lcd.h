@@ -46,24 +46,36 @@ namespace agg
             tert   *= norm;
             for(unsigned i = 0; i < 256; i++)
             {
-                m_primary[i]   = (unsigned char)floor(prim   * i);
-                m_secondary[i] = (unsigned char)floor(second * i);
-                m_tertiary[i]  = (unsigned char)floor(tert   * i);
+                unsigned b = (i << 8);
+                unsigned s = round(second * b);
+                unsigned t = round(tert   * b);
+                unsigned p = b - (2*s + 2*t);
+
+                m_data[3*i + 1] = s; /* secondary */
+                m_data[3*i + 2] = t; /* tertiary */
+                m_data[3*i    ] = p; /* primary */
             }
         }
 
-        unsigned primary(unsigned v)   const { return m_primary[v];   }
-        unsigned secondary(unsigned v) const { return m_secondary[v]; }
-        unsigned tertiary(unsigned v)  const { return m_tertiary[v];  }
+        unsigned convolution(const int8u* covers, int i0, int i_min, int i_max) const
+        {
+            unsigned sum = 0;
+            int k_min = (i0 >= i_min + 2 ? -2 : i_min - i0);
+            int k_max = (i0 <= i_max - 2 ?  2 : i_max - i0);
+            for (int k = k_min; k <= k_max; k++)
+            {
+                /* select the primary, secondary or tertiary channel */
+                int channel = abs(k) % 3;
+                int8u c = covers[i0 + k];
+                sum += m_data[3*c + channel];
+            }
+
+            return (sum + 128) >> 8;
+        }
 
     private:
-        unsigned char m_primary[256];
-        unsigned char m_secondary[256];
-        unsigned char m_tertiary[256];
+        unsigned short m_data[256*3];
     };
-
-
-
 
 
     //========================================================pixfmt_rgb24_lcd
@@ -77,96 +89,148 @@ namespace agg
 
         //--------------------------------------------------------------------
         pixfmt_rgb24_lcd(rendering_buffer& rb, const lcd_distribution_lut& lut)
-            : m_rbuf(&rb),
-              m_lut(&lut)
+            : m_rbuf(&rb), m_lut(&lut)
         {
         }
 
         //--------------------------------------------------------------------
-        unsigned width()  const { return m_rbuf->width() * 3;  }
-        unsigned height() const { return m_rbuf->height(); }
+        unsigned width()  const {
+            return m_rbuf->width() * 3;
+        }
+        unsigned height() const {
+            return m_rbuf->height();
+        }
 
 
-        //--------------------------------------------------------------------
-        void blend_hline(int x, int y,
-                         unsigned len, 
-                         const color_type& c,
-                         int8u cover)
+        // This method should never be called when using the scanline_u8.
+        // The use of scanline_p8 should be avoided because if does not works
+        // properly for rendering fonts because single hspan are split in many
+        // hline/hspan elements and pixel whitening happens.
+        void blend_hline(int x, int y, unsigned len,
+                         const color_type& c, int8u cover)
+        { }
+
+        void copy_hline(int x, int y, unsigned len, const color_type& c)
         {
-            int8u* p = m_rbuf->row_ptr(y) + x + x + x;
-            int alpha = int(cover) * c.a;
-            do
+            int xr = x - (x % 3);
+            int8u* p = m_rbuf->row_ptr(y) + xr;
+            for (int ilen = len; ilen > 0; p += 3, ilen -= 3)
             {
-                p[0] = (int8u)((((c.r - p[0]) * alpha) + (p[0] << 16)) >> 16);
-                p[1] = (int8u)((((c.g - p[1]) * alpha) + (p[1] << 16)) >> 16);
-                p[2] = (int8u)((((c.b - p[2]) * alpha) + (p[2] << 16)) >> 16);
-                p += 3;
+                p[0] = c.r;
+                p[1] = c.g;
+                p[2] = c.b;
             }
-            while(--len);
         }
-
 
         //--------------------------------------------------------------------
         void blend_solid_hspan(int x, int y,
-                               unsigned len, 
+                               unsigned len,
                                const color_type& c,
                                const int8u* covers)
         {
-            int8u c3[2048*3];
-            memset(c3, 0, len+4);
+            unsigned rowlen = width();
+            int cx = (x - 2 >= 0 ? -2 : -x);
+            int cx_max = (len + 2 <= rowlen ? len + 1 : rowlen - 1);
 
-            int i;
-            for(i = 0; i < int(len); i++)
-            {
-                c3[i+0] += m_lut->tertiary(covers[i]);
-                c3[i+1] += m_lut->secondary(covers[i]);
-                c3[i+2] += m_lut->primary(covers[i]);
-                c3[i+3] += m_lut->secondary(covers[i]);
-                c3[i+4] += m_lut->tertiary(covers[i]);
-            }
-
-            x -= 2;
-            len += 4;
-
-            if(x < 0)
-            {
-                len -= x;
-                x = 0;
-            }
-
-            covers = c3;
-            i = x % 3;
+            int i = (x + cx) % 3;
 
             int8u rgb[3] = { c.r, c.g, c.b };
-            int8u* p = m_rbuf->row_ptr(y) + x;
+            int8u* p = m_rbuf->row_ptr(y) + (x + cx);
 
-            do 
+            for (/* */; cx <= cx_max; cx++)
             {
-                int alpha = int(*covers++) * c.a;
-                if(alpha)
-                {
-                    if(alpha == 255*255)
-                    {
-                        *p = (int8u)rgb[i];
-                    }
-                    else
-                    {
-                        *p = (int8u)((((rgb[i] - *p) * alpha) + (*p << 16)) >> 16);
-                    }
-                }
-                ++p;
-                ++i;
-                if(i >= 3) i = 0;
-            }
-            while(--len);
-        }
+                unsigned c_conv = m_lut->convolution(covers, cx, 0, len - 1);
+                unsigned alpha = (c_conv + 1) * (c.a + 1);
+                unsigned dst_col = rgb[i], src_col = (*p);
+                *p = (int8u)((((dst_col - src_col) * alpha) + (src_col << 16)) >> 16);
 
+                p ++;
+                i = (i + 1) % 3;
+            }
+        }
 
     private:
         rendering_buffer* m_rbuf;
         const lcd_distribution_lut* m_lut;
     };
 
+
+    template <class Gamma>
+    class pixfmt_rgb24_lcd_gamma
+    {
+    public:
+        typedef rgba8 color_type;
+        typedef rendering_buffer::row_data row_data;
+        typedef color_type::value_type value_type;
+        typedef color_type::calc_type calc_type;
+
+        //--------------------------------------------------------------------
+        pixfmt_rgb24_lcd_gamma(rendering_buffer& rb, const lcd_distribution_lut& lut, const Gamma& gamma)
+            : m_rbuf(&rb), m_lut(&lut), m_gamma(gamma)
+        {
+        }
+
+        //--------------------------------------------------------------------
+        unsigned width()  const {
+            return m_rbuf->width() * 3;
+        }
+        unsigned height() const {
+            return m_rbuf->height();
+        }
+
+
+        // This method should never be called when using the scanline_u8.
+        // The use of scanline_p8 should be avoided because if does not works
+        // properly for rendering fonts because single hspan are split in many
+        // hline/hspan elements and pixel whitening happens.
+        void blend_hline(int x, int y, unsigned len,
+                         const color_type& c, int8u cover)
+        { }
+
+        void copy_hline(int x, int y, unsigned len, const color_type& c)
+        {
+            int xr = x - (x % 3);
+            int8u* p = m_rbuf->row_ptr(y) + xr;
+            for (int ilen = len; ilen > 0; p += 3, ilen -= 3)
+            {
+                p[0] = c.r;
+                p[1] = c.g;
+                p[2] = c.b;
+            }
+        }
+
+        //--------------------------------------------------------------------
+        void blend_solid_hspan(int x, int y,
+                               unsigned len,
+                               const color_type& c,
+                               const int8u* covers)
+        {
+            unsigned rowlen = width();
+            int cx = (x - 2 >= 0 ? -2 : -x);
+            int cx_max = (len + 2 <= rowlen ? len + 1 : rowlen - 1);
+
+            int i = (x + cx) % 3;
+
+            int8u rgb[3] = { c.r, c.g, c.b };
+            int8u* p = m_rbuf->row_ptr(y) + (x + cx);
+
+            for (/* */; cx <= cx_max; cx++)
+            {
+                unsigned c_conv = m_lut->convolution(covers, cx, 0, len - 1);
+                unsigned alpha = (c_conv + 1) * (c.a + 1);
+                unsigned dst_col = m_gamma.dir(rgb[i]), src_col = m_gamma.dir(*p);
+                *p = m_gamma.inv((((dst_col - src_col) * alpha) + (src_col << 16)) >> 16);
+
+                p ++;
+                i = (i + 1) % 3;
+            }
+        }
+
+    private:
+        rendering_buffer* m_rbuf;
+        const lcd_distribution_lut* m_lut;
+        const Gamma& m_gamma;
+    };
 
 }
 
