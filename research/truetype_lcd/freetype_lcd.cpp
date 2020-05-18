@@ -1,4 +1,9 @@
 #include <stdio.h>
+
+#if defined(_WIN32) || defined(WIN32)
+#include <shellscalingapi.h>
+#endif
+
 #include "agg_basics.h"
 #include "agg_rendering_buffer.h"
 #include "agg_scanline_u.h"
@@ -529,6 +534,11 @@ int agg_main(int argc, char* argv[])
             "If it does not work you may call the demo providing\n" \
             "the directory containing the truetype fonts as an argument.\n");
     }
+
+#if defined(_WIN32) || defined(WIN32)
+    fprintf(stderr, "NTDDI_VERSION:%d NTDDI_WINBLUE:%d \n", NTDDI_VERSION, NTDDI_WINBLUE);
+    SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
+#endif
 
     the_application app(agg::pix_format_rgb24, flip_y);
     app.caption("AGG Example. A New Way of Text Rasterization");
