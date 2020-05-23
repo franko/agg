@@ -7,10 +7,14 @@
 
 #include "font_render_lcd.h"
 
+extern "C" int main(int argc, char *argv[]);
+
 #if defined(_WIN32) || defined(WIN32)
 static const char *os_font_directory = "C:/Windows/fonts";
+static const char *font_filename = "georgia.ttf";
 #else
 static const char *os_font_directory = "/usr/share/fonts/truetype";
+const char *font_filename = "liberation/LiberationSerif-Regular.ttf";
 #endif
 
 static char *path_join(const char *dir, const char *filename) {
@@ -36,7 +40,6 @@ int main(int argc, char* argv[])
     }
     fprintf(stderr, "looking for truetype fonts in directory %s.\n", os_font_directory);
 
-    const char *font_filename = "liberation/LiberationSerif-Regular.ttf";
     const char *font_full_path = path_join(os_font_directory, font_filename);
 
     agg::rendering_buffer ren_buf;
