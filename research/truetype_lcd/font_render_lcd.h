@@ -31,6 +31,8 @@ class font_renderer_lcd
     bool m_grayscale;
     double m_gamma;
 
+    bool m_font_loaded;
+
     // Pipeline to process the vectors glyph paths (curves + contour)
     agg::trans_affine m_mtx;
     agg::conv_curve<font_manager_type::path_adaptor_type> m_curves;
@@ -43,71 +45,74 @@ public:
         m_kerning(true),
         m_grayscale(false),
         m_gamma(1.8),
+        m_font_loaded(false),
         m_curves(m_fman.path_adaptor()),
         m_trans(m_curves, m_mtx)
     {
         m_gamma_lut.gamma(m_gamma);
     }
 
+    bool load_font(const char *font_filename) {
+        if(m_feng.load_font(font_filename, 0, agg::glyph_ren_outline)) {
+            m_font_loaded = true;
+        }
+        return m_font_loaded;
+    }
+
     template<class Rasterizer, class Scanline, class RenSolid>
     double draw_text(Rasterizer& ras, Scanline& sl, 
                      RenSolid& ren_solid, const agg::rgba8 color,
-                     const char* font_filename, const char* text,
+                     const char* text,
                      double x, double y, double height,
                      unsigned subpixel_scale)
     {
-        agg::glyph_rendering gren = agg::glyph_ren_outline;
+        const double scale_x = 100;
 
-        double scale_x = 100;
+        m_feng.height(height);
+        m_feng.width(height * scale_x * subpixel_scale);
+        m_feng.hinting(m_hinting);
 
-        if(m_feng.load_font(font_filename, 0, gren))
+        const char* p = text;
+
+        x *= subpixel_scale;
+        double start_x = x;
+
+        while(*p)
         {
-            m_feng.height(height);
-            m_feng.width(height * scale_x * subpixel_scale);
-            m_feng.hinting(m_hinting);
-
-            const char* p = text;
-
-            x *= subpixel_scale;
-            double start_x = x;
-
-            while(*p)
+            if(*p == '\n')
             {
-                if(*p == '\n')
-                {
-                    x = start_x;
-                    y -= height * 1.25;
-                    ++p;
-                    continue;
-                }
-
-                const agg::glyph_cache* glyph = m_fman.glyph(*p);
-                if(glyph)
-                {
-                    if(m_kerning)
-                    {
-                        m_fman.add_kerning(&x, &y);
-                    }
-
-                    m_fman.init_embedded_adaptors(glyph, 0, 0);
-                    if(glyph->data_type == agg::glyph_data_outline)
-                    {
-                        double ty = m_hinting ? floor(y + 0.5) : y;
-                        ras.reset();
-                        m_mtx.reset();
-                        m_mtx *= agg::trans_affine_scaling(1.0 / scale_x, 1);
-                        m_mtx *= agg::trans_affine_translation(start_x + x/scale_x, ty);
-                        ras.add_path(m_trans);
-                        ren_solid.color(color);
-                        agg::render_scanlines(ras, sl, ren_solid);
-                    }
-
-                    // increment pen position
-                    x += glyph->advance_x;
-                    y += glyph->advance_y;
-                }
+                x = start_x;
+                y -= height * 1.25;
                 ++p;
+                continue;
             }
+
+            const agg::glyph_cache* glyph = m_fman.glyph(*p);
+            if(glyph)
+            {
+                if(m_kerning)
+                {
+                    m_fman.add_kerning(&x, &y);
+                }
+
+                m_fman.init_embedded_adaptors(glyph, 0, 0);
+                if(glyph->data_type == agg::glyph_data_outline)
+                {
+                    double ty = m_hinting ? floor(y + 0.5) : y;
+                    ras.reset();
+                    m_mtx.reset();
+                    m_mtx *= agg::trans_affine_scaling(1.0 / scale_x, 1);
+                    m_mtx *= agg::trans_affine_translation(start_x + x/scale_x, ty);
+                    ras.add_path(m_trans);
+                    ren_solid.color(color);
+                    agg::render_scanlines(ras, sl, ren_solid);
+                }
+
+                // increment pen position
+                x += glyph->advance_x;
+                y += glyph->advance_y;
+            }
+            ++p;
         }
         return y;
     }
@@ -119,15 +124,18 @@ public:
     }
 
     double render_text(agg::rendering_buffer& ren_buf,
-        const char *font_filename,
         const double text_size,
         const agg::rgba8 text_color,
         double x, double y,
         const char *text)
     {
+        if (!m_font_loaded) {
+            return y;
+        }
+
         agg::scanline_u8 sl;
         agg::rasterizer_scanline_aa<> ras;
-        ras.clip_box(0, 120, ren_buf.width()*3, ren_buf.height());
+        ras.clip_box(0, 0, ren_buf.width()*3, ren_buf.height());
 
         //--------------------------------------
         if(m_grayscale)
@@ -135,7 +143,7 @@ public:
             agg::pixfmt_rgb24 pf(ren_buf);
             base_ren_type ren_base(pf);
             renderer_solid ren_solid(ren_base);
-            y = draw_text(ras, sl, ren_solid, text_color, font_filename, text, x, y, text_size, 1);
+            y = draw_text(ras, sl, ren_solid, text_color, text, x, y, text_size, 1);
         }
         else
         {
@@ -147,7 +155,7 @@ public:
             pixfmt_lcd_type pf_lcd(ren_buf, lut, m_gamma_lut);
             agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
             agg::renderer_scanline_aa_solid<agg::renderer_base<pixfmt_lcd_type> > ren_solid_lcd(ren_base_lcd);
-            y = draw_text(ras, sl, ren_solid_lcd, text_color, font_filename, text, x, y, text_size, 3);
+            y = draw_text(ras, sl, ren_solid_lcd, text_color, text, x, y, text_size, 3);
         }
         return y;
     }

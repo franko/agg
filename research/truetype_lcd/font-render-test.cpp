@@ -52,11 +52,13 @@ int main(int argc, char* argv[])
     }
     ren_buf.attach(buffer_data, width, height, -width * pixel_size);
 
-    font_renderer_lcd font_renderer;
-    font_renderer.clear(ren_buf, agg::rgba8(0xe9, 0xe5, 0xcd));
+    const agg::rgba8 text_color = agg::rgba8(0x23, 0x1f, 0x20);
+    const agg::rgba8 page_color = agg::rgba8(0xe9, 0xe5, 0xcd);
 
-    font_renderer.render_text(ren_buf, font_full_path,
-        24, agg::rgba8(0x23, 0x1f, 0x20), 20, 320, "Hello world!");
+    font_renderer_lcd font_renderer;
+    font_renderer.load_font(font_full_path);
+    font_renderer.clear(ren_buf, page_color);
+    font_renderer.render_text(ren_buf, 24, text_color, 20, 320, "Hello world!");
 
     Uint32 pixel_format = SDL_PIXELFORMAT_RGB24;
     SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void *)buffer_data, width, height,
