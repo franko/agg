@@ -1,6 +1,10 @@
 #include <new>
 #include <stdio.h>
 
+#include "SDL_error.h"
+#include "SDL_log.h"
+#include "SDL_surface.h"
+
 #include "font_render_lcd.h"
 
 #if defined(_WIN32) || defined(WIN32)
@@ -50,6 +54,16 @@ int main(int argc, char* argv[])
 
     font_renderer.render_text(ren_buf, font_full_path,
         24, agg::rgba8(0x23, 0x1f, 0x20), 20, 320, "Hello world!");
+
+    Uint32 pixel_format = SDL_PIXELFORMAT_RGB24;
+    SDL_Surface* surf = SDL_CreateRGBSurfaceWithFormatFrom((void *)buffer_data, width, height,
+        pixel_size * 8, pixel_size * width, pixel_format);
+
+    if (SDL_SaveBMP(surf, "output.bmp") < 0) {
+        const char *error_message = SDL_GetError();
+        SDL_Log("SDL Error writing bmp file \"output.bmp\": %s\n", error_message);
+        return 1;
+    }
 
     return 0;
 }

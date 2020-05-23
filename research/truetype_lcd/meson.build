@@ -13,7 +13,7 @@ if freetype_dep.found()
     executable('font-render-test',
         ['font-render-test.cpp'],
         include_directories: [agg_includes, agg_freetype_includes],
-        dependencies: demo_subpixel_deps,
+        dependencies: [agg_deps, freetype_dep, sdl_dep],
         cpp_args: demo_subpixel_cppargs,
         link_with: [libagg, libaggfreetype],
     )
