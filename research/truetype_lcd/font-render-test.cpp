@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
     font_renderer.clear(ren_buf, agg::rgba8(0xe9, 0xe5, 0xcd));
 
     font_renderer.render_text(ren_buf, font_full_path,
-        12, agg::rgba8(0x23, 0x1f, 0x20), 320, 320, "Hello world!");
+        24, agg::rgba8(0x23, 0x1f, 0x20), 20, 320, "Hello world!");
 
     return 0;
 }

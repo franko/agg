@@ -45,7 +45,9 @@ public:
         m_gamma(1.8),
         m_curves(m_fman.path_adaptor()),
         m_trans(m_curves, m_mtx)
-    { }
+    {
+        m_gamma_lut.gamma(m_gamma);
+    }
 
     template<class Rasterizer, class Scanline, class RenSolid>
     double draw_text(Rasterizer& ras, Scanline& sl, 
@@ -93,6 +95,7 @@ public:
                         double ty = m_hinting ? floor(y + 0.5) : y;
                         ras.reset();
                         m_mtx.reset();
+                        m_mtx *= agg::trans_affine_scaling(1.0 / scale_x, 1);
                         m_mtx *= agg::trans_affine_translation(start_x + x/scale_x, ty);
                         ras.add_path(m_trans);
                         ren_solid.color(color);
@@ -115,40 +118,37 @@ public:
         ren_base.clear(color);
     }
 
-    void render_text(agg::rendering_buffer& ren_buf,
+    double render_text(agg::rendering_buffer& ren_buf,
         const char *font_filename,
         const double text_size,
         const agg::rgba8 text_color,
         double x, double y,
         const char *text)
     {
-        m_gamma_lut.gamma(m_gamma);
-
-        agg::pixfmt_rgb24 pf(ren_buf);
-        base_ren_type ren_base(pf);
-        renderer_solid ren_solid(ren_base);
-
         agg::scanline_u8 sl;
         agg::rasterizer_scanline_aa<> ras;
-        ras.clip_box(0, 120, pf.width()*3, pf.height());
-
-        // Conventional LUT values: (1./3., 2./9., 1./9.)
-        // The values below are fine tuned as in the Elementary Plot library.
-        // The primary weight should be 0.448 but is left adjustable.
-        agg::lcd_distribution_lut lut(0.448, 0.184, 0.092);
-        typedef agg::pixfmt_rgb24_lcd_gamma<agg::gamma_lut<> > pixfmt_lcd_type;
-        pixfmt_lcd_type pf_lcd(ren_buf, lut, m_gamma_lut);
-        agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
-        agg::renderer_scanline_aa_solid<agg::renderer_base<pixfmt_lcd_type> > ren_solid_lcd(ren_base_lcd);
+        ras.clip_box(0, 120, ren_buf.width()*3, ren_buf.height());
 
         //--------------------------------------
         if(m_grayscale)
         {
-            y  = draw_text(ras, sl, ren_solid, text_color, font_filename, text, x, y, text_size, 1); 
+            agg::pixfmt_rgb24 pf(ren_buf);
+            base_ren_type ren_base(pf);
+            renderer_solid ren_solid(ren_base);
+            y = draw_text(ras, sl, ren_solid, text_color, font_filename, text, x, y, text_size, 1);
         }
         else
         {
-            y  = draw_text(ras, sl, ren_solid_lcd, text_color, font_filename, text, x, y, text_size, 3); 
+            // Conventional LUT values: (1./3., 2./9., 1./9.)
+            // The values below are fine tuned as in the Elementary Plot library.
+            // The primary weight should be 0.448 but is left adjustable.
+            agg::lcd_distribution_lut lut(0.448, 0.184, 0.092);
+            typedef agg::pixfmt_rgb24_lcd_gamma<agg::gamma_lut<> > pixfmt_lcd_type;
+            pixfmt_lcd_type pf_lcd(ren_buf, lut, m_gamma_lut);
+            agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
+            agg::renderer_scanline_aa_solid<agg::renderer_base<pixfmt_lcd_type> > ren_solid_lcd(ren_base_lcd);
+            y = draw_text(ras, sl, ren_solid_lcd, text_color, font_filename, text, x, y, text_size, 3);
         }
+        return y;
     }
 };
