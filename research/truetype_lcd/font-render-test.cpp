@@ -1,10 +1,7 @@
-#include <new>
+#include <assert.h>
 #include <stdio.h>
 
 #include "SDL.h"
-#include "SDL_error.h"
-#include "SDL_log.h"
-#include "SDL_surface.h"
 
 #include "font_render_lcd.h"
 
@@ -33,11 +30,10 @@ static char *path_join(const char *dir, const char *filename) {
 }
 
 static SDL_Surface *SetupNewRendererSurface(agg::rendering_buffer& ren_buf, int width, int height) {
-    fprintf(stderr, "new width: %d height: %d\n", width, height);
     SDL_Surface *surface = SDL_CreateRGBSurfaceWithFormat(0, width, height,
         RENDERER_PIXEL_SIZE * 8, RENDERER_PIXEL_FORMAT);
     SDL_SetSurfaceBlendMode(surface, SDL_BLENDMODE_NONE);
-    ren_buf.attach((agg::int8u *) surface->pixels, width, height, -width * RENDERER_PIXEL_SIZE);
+    ren_buf.attach((agg::int8u *) surface->pixels, width, height, -surface->pitch);
     return surface;
 }
 
@@ -55,7 +51,7 @@ int main(int argc, char* argv[])
 
     const char *font_full_path = path_join(os_font_directory, font_filename);
 
-    if (SDL_Init(SDL_INIT_VIDEO) < 0) {
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) < 0) {
         SDL_LogError(SDL_LOG_CATEGORY_APPLICATION, "Couldn't initialize SDL: %s", SDL_GetError());
         return 3;
     }
@@ -72,36 +68,35 @@ int main(int argc, char* argv[])
     SDL_Surface *rendering_surface = NULL;
     while (1) {
         SDL_Event event;
-        if (SDL_WaitEvent(&event) == 0) {
+        if (SDL_WaitEvent(&event) == 0 || event.type >= 0x300) {
             continue;
         }
         if (event.type == SDL_QUIT) {
             break;
         }
-        fprintf(stderr, "event.type %06x\n", event.type);
         if (event.type == SDL_WINDOWEVENT) {
-            fprintf(stdout, "window event %d\n", event.window.event);
             Uint8 wet = event.window.event;
-            if (wet == SDL_WINDOWEVENT_SHOWN || wet == SDL_WINDOWEVENT_SIZE_CHANGED) {
+            if (wet == SDL_WINDOWEVENT_SHOWN || wet == SDL_WINDOWEVENT_SIZE_CHANGED || wet == SDL_WINDOWEVENT_MOVED) {
                 int width, height;
                 SDL_GetWindowSize(window, &width, &height);
                 if (rendering_surface) {
                     SDL_FreeSurface(rendering_surface);
                 }
                 rendering_surface = SetupNewRendererSurface(ren_buf, width, height);
-            } else if (wet == SDL_WINDOWEVENT_EXPOSED) {
-                if (rendering_surface != NULL) {
-                    font_renderer.clear(ren_buf, page_color);
-                    font_renderer.render_text(ren_buf, 24, text_color,
-                        20, rendering_surface->w / 2,
-                        "Hello world!");
 
-                    SDL_Surface *window_surface = SDL_GetWindowSurface(window);
-                    SDL_BlitSurface(rendering_surface, NULL, window_surface, NULL);
-                    SDL_UpdateWindowSurface(window);
-                } else {
-                    fprintf(stderr, "rendering_surface NULL\n");
+            } else if (wet == SDL_WINDOWEVENT_EXPOSED) {
+                SDL_Surface *window_surface = SDL_GetWindowSurface(window);
+                int width = window_surface->w, height = window_surface->h;
+                if (!rendering_surface) {
+                    rendering_surface = SetupNewRendererSurface(ren_buf, width, height);
                 }
+                assert(rendering_surface->w == width && rendering_surface->h == height);
+                font_renderer.clear(ren_buf, page_color);
+                font_renderer.render_text(ren_buf, 24, text_color,
+                    20, rendering_surface->w / 2,
+                    "Hello world!");
+                SDL_BlitSurface(rendering_surface, NULL, window_surface, NULL);
+                SDL_UpdateWindowSurface(window);
             }
         }
     }
