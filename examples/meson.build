@@ -9,6 +9,6 @@ example_apps = {
 foreach name, args : example_apps
     executable(name, args['sources'],
            include_directories: agg_includes, dependencies: agg_deps,
-           link_with: [libagg, libplatform],
+           link_with: [libagg, libaggplatform],
            gui_app: true, install: true)
 endforeach

@@ -3,7 +3,7 @@ if freetype_dep.found()
         ['freetype_lcd.cpp'],
         include_directories: [agg_includes, agg_freetype_includes],
         dependencies: [agg_deps, freetype_dep],
-        link_with: [libagg, libaggfreetype, libplatform],
+        link_with: [libagg, libaggfreetype, libaggplatform],
         gui_app: true,
         install: true
     )
