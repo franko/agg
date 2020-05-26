@@ -1,4 +1,9 @@
 #include <stdio.h>
+
+#if defined(_WIN32) || defined(WIN32)
+#include <shellscalingapi.h>
+#endif
+
 #include "agg_basics.h"
 #include "agg_rendering_buffer.h"
 #include "agg_scanline_u.h"
@@ -240,13 +245,13 @@ public:
 
         m_gamma.label("Gamma=%.2f");
         m_gamma.range(0.5, 2.5);
-        m_gamma.value(1.5);
+        m_gamma.value(1.8);
         add_ctrl(m_gamma);
         m_gamma.no_transform();
 
         m_primary.label("Primary Weight=%.2f");
         m_primary.range(0.0, 1.0);
-        m_primary.value(1./3.); // Alternative value: 0.448
+        m_primary.value(0.448); // Standard, non-tuned value is 1./3.
         add_ctrl(m_primary);
         m_primary.no_transform();
 
@@ -380,12 +385,14 @@ public:
         agg::rasterizer_scanline_aa<> ras;
         ras.clip_box(0, 120, pf.width()*3, pf.height());
 
-        // Alternative LUT values: (0.448, 0.184, 0.092) tuned in elementary
-        // plot library.
-        agg::lcd_distribution_lut lut(m_primary.value(), 2./9., 1./9.);
-        agg::pixfmt_rgb24_lcd pf_lcd(rbuf_window(), lut);
-        agg::renderer_base<agg::pixfmt_rgb24_lcd> ren_base_lcd(pf_lcd);
-        agg::renderer_scanline_aa_solid<agg::renderer_base<agg::pixfmt_rgb24_lcd> > ren_solid_lcd(ren_base_lcd);
+        // Conventional LUT values: (1./3., 2./9., 1./9.)
+        // The values below are fine tuned as in the Elementary Plot library.
+        // The primary weight should be 0.448 but is left adjustable.
+        agg::lcd_distribution_lut lut(m_primary.value(), 0.184, 0.092);
+        typedef agg::pixfmt_rgb24_lcd_gamma<agg::gamma_lut<> > pixfmt_lcd_type;
+        pixfmt_lcd_type pf_lcd(rbuf_window(), lut, m_gamma_lut);
+        agg::renderer_base<pixfmt_lcd_type> ren_base_lcd(pf_lcd);
+        agg::renderer_scanline_aa_solid<agg::renderer_base<pixfmt_lcd_type> > ren_solid_lcd(ren_base_lcd);
 
 
         double y = height() - 20;
@@ -484,7 +491,6 @@ public:
 */
 
 
-        pf.apply_gamma_inv(m_gamma_lut);
         ras.clip_box(0, 0, pf.width(), pf.height());
 
         agg::render_ctrl(ras, sl, ren_base, m_color_scheme);
@@ -529,6 +535,11 @@ int agg_main(int argc, char* argv[])
             "If it does not work you may call the demo providing\n" \
             "the directory containing the truetype fonts as an argument.\n");
     }
+
+#if defined(_WIN32) || defined(WIN32)
+    fprintf(stderr, "NTDDI_VERSION:%d NTDDI_WINBLUE:%d \n", NTDDI_VERSION, NTDDI_WINBLUE);
+    SetProcessDpiAwareness(PROCESS_SYSTEM_DPI_AWARE);
+#endif
 
     the_application app(agg::pix_format_rgb24, flip_y);
     app.caption("AGG Example. A New Way of Text Rasterization");
