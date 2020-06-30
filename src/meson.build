@@ -38,7 +38,18 @@ agg_src = [
 '../gpc/gpc.c'
 ]
 
-libagg = static_library('agg', agg_src, dependencies: agg_deps, include_directories: agg_includes, install: true)
+libagg = static_library('agg',
+  agg_src,
+  dependencies: agg_deps,
+  include_directories: agg_includes,
+  install: true
+)
+
+libagg_dep = declare_dependency(
+    dependencies : agg_deps,
+    include_directories : agg_includes,
+    link_with : libagg,
+)
 
 # The 'subdirs' below is needed because the headers are installed inside the 'agg2'
 # subdirectory.
