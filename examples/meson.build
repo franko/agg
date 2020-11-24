@@ -1,9 +1,12 @@
 example_apps = {
+    'conv_stroke': { 'sources': ['conv_stroke.cpp'], },
+    'gouraud': { 'sources': ['gouraud.cpp'], },
+    'gouraud_mesh': { 'sources': ['gouraud_mesh.cpp'], },
+    'lion': { 'sources': ['lion.cpp', 'parse_lion.cpp'], },
+    'mol_view': { 'sources': ['mol_view.cpp'], },
+    'pattern_fill': { 'sources': ['pattern_fill.cpp'], },
     'rasterizers': { 'sources': ['rasterizers.cpp'], },
     'rasterizers2': { 'sources': ['rasterizers2.cpp'], },
-    'lion': { 'sources': ['lion.cpp', 'parse_lion.cpp'], },
-    'conv_stroke': { 'sources': ['conv_stroke.cpp'], },
-    'mol_view': { 'sources': ['mol_view.cpp'], },
 }
 
 foreach name, args : example_apps
@@ -12,3 +15,4 @@ foreach name, args : example_apps
            link_with: [libagg, libaggplatform],
            gui_app: true, install: true)
 endforeach
+
