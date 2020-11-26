@@ -1,12 +1,29 @@
 *Meson build for the Antigrain C++ library*
 
+A high quality rendering engine for C++
+[antigrain github mirror](https://franko.github.io/antigrain/).
+
 This repository provides the Antigrain library from the 2.4 version branch with the addition of a Meson build and some fixes.
 
-You can find more information about the Antigrain library in the [Antigrain library's homepage](http://antigrain.com/).
+You can find more information about the Antigrain library in the [antigrain github mirror](https://franko.github.io/antigrain/).
+
+Please note tha the original domain [antigrain.com](http://antigrain.com) may not work and the [antigrain github mirror](https://franko.github.io/antigrain/)
+reproduce its contents without modifications.
 
 ## Why Meson ?
 
-Because it is better than Makefiles and works better with [Little Library Helper](https://github.com/franko/lhelper) to easily build and install the antigrain library on Linux or Windows using MinGW.
+Meson is an open source build system meant to be both extremely fast, and, even more importantly, as user friendly as possible.
+
+Meson is used in many major open source projects.
+It is better than using simple Makefiles and works better with [Little Library Helper](https://github.com/franko/lhelper)
+to easily build and install the antigrain library on Linux or Windows using MinGW.
+
+To install Meson have a look at the official [getting Meson](https://mesonbuild.com/Getting-meson.html) webpage.
+
+Using Meson you can build the Antigrain library using all the standard options the Meson offers.
+
+The library is built as a static library and in addition many of the original examples will be compiled.
+A pkg-config file is also provided when installing the library.
 
 ## How to use it?
 
@@ -19,27 +36,12 @@ ninja -C build install
 ```
 more information from the [Meson Quick guide](https://mesonbuild.com/Quick-guide.html).
 
-## Getting started with Little Library Helper
+# An introduction to the Antigrain library
 
-The Little Library Helper let you create isolated build environments without messing with system-wide installs.
+The author of this page propose an [introduction to the Antigrain library](https://franko.github.io/agg-intro).
+While not complete it can be useful for people beginning with the Antigrain library.
 
-Here how to use the Antigrain library with the Little Library Helper.
-
-```sh
-# Create a build environment named 'agg',
-lhelper create agg
-
- # Start a new shell in the 'agg' build environment.
-lhelper activate agg
-
-# Install the agg library in the current build environment.
-lhelper install libagg
-
-# Compile whatever project that may need the agg library.
-# The agg library will be visible with pkg-config and CMake.
-
-exit # end the shell in the 'agg' build environment
-```
+Otherwise please refer to the original Antigrain website using the [antigrain github mirror](https://franko.github.io/antigrain/).
 
 # What is the Antigrain library? (extract from the original Antigrain library's README)
 
