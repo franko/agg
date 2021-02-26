@@ -1,0 +1,2 @@
+option('demos', type : 'boolean', value : true, description: 'Enable demo applications')
+

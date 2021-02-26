@@ -14,6 +14,11 @@ agg_includes = include_directories('include')
 install_subdir('include', install_dir : 'include/agg2', strip_directory : true)
 
 subdir('src')
-subdir('font_freetype')
-subdir('examples')
-subdir('research/truetype_lcd')
+
+if not meson.is_subproject()
+    subdir('font_freetype')
+    if get_option('demos')
+        subdir('examples')
+        subdir('research/truetype_lcd')
+    endif
+endif
