@@ -1,7 +1,7 @@
-if host_machine.system() == 'linux'
-    platform_support_src = ['X11/agg_platform_support.cpp']
-else
+if host_machine.system() == 'windows'
     platform_support_src = ['win32/agg_platform_support.cpp', 'win32/agg_win32_bmp.cpp']
+else
+    platform_support_src = ['X11/agg_platform_support.cpp']
 endif
 
 libaggplatform = static_library('aggplatform', platform_support_src,

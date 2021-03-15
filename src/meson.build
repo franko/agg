@@ -39,10 +39,10 @@ agg_src = [
 ]
 
 libagg = static_library('agg',
-  agg_src,
-  dependencies: agg_deps,
-  include_directories: agg_includes,
-  install: true
+    agg_src,
+    dependencies: agg_deps,
+    include_directories: agg_includes,
+    install: true
 )
 
 libagg_dep = declare_dependency(
@@ -60,4 +60,6 @@ pkg.generate(libagg,
     description : 'Anti-grain library',
 )
 
-subdir('platform')
+if agg_platform_support
+    subdir('platform')
+endif
